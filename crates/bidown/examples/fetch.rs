@@ -1,10 +1,10 @@
-//! 使用示例
+//! 互动视频描述爬取示例
 //!
-//! 此示例将获取互动视频 BV1GxLgzgEyL 的相关数据
+//! 此示例将获取互动视频 BV1vSNbzgEQF 的相关数据
 
 use std::{env, error::Error, fs::File, io::Write, time::Duration};
 
-use bidown::fetch::fetch;
+use bidown::model::Video;
 use env_logger::Env;
 use http::Extensions;
 use log::{debug, info};
@@ -16,7 +16,7 @@ use reqwest_middleware::{ClientBuilder, Middleware, Next};
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use tokio::time::sleep;
 
-const VIDEO: &str = "BV1GxLgzgEyL";
+const VIDEO: &str = "BV1vSNbzgEQF";
 
 //////// utility ////////
 
@@ -84,7 +84,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .build();
 
     // 5. 执行互动视频爬取
-    let video = fetch(&client, VIDEO).await?;
+    let video = Video::fetch(&client, VIDEO).await?;
     let video = serde_json::to_string_pretty(&video)?;
 
     // 6. 写入本地文件

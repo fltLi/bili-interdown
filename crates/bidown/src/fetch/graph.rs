@@ -337,10 +337,7 @@ pub enum Error {
     #[error(transparent)]
     Reqwest(#[from] reqwest_middleware::reqwest::Error),
 
-    #[error("历史节点列表不包含节点自身: title={0}")]
-    CurrentNotFound(String),
-
-    #[error("节点选项列表数要求为 1, 而实际为: {0}")]
+    #[error("节点选项列表数要求为 1, 而实际为 {0}")]
     ChoicesCount(usize),
 
     #[error("隐藏值条件语句非法: {0}")]
@@ -397,16 +394,15 @@ pub async fn fetch_graph(
         eid: root_eid,
     }];
     while let Some(Target { cid, eid }) = stack.pop() {
-        if visit.contains(&cid) {
+        if !visit.insert(cid) {
+            // 标记为已获取
             continue;
         }
 
         let node = fetch_node(client, bvid, cid, eid, version).await?;
         info!("Node `{}` fetched, name=`{}`", node.id, node.name);
 
-        visit.insert(cid); // 标记为已获取
         stack.append(&mut node.list_edges()); // 推入邻边
-
         nodes.push(node);
     }
 

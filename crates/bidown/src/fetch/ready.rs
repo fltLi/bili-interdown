@@ -80,9 +80,6 @@ pub enum Error {
     #[error(transparent)]
     Reqwest(#[from] reqwest_middleware::reqwest::Error),
 
-    #[error("视频分页数要求为 1, 而实际为 {0}")]
-    PagesCount(usize),
-
     #[error("视频不为互动视频或找不到版本信息: {0}")]
     VersionNotFound(reqwest_middleware::reqwest::Error),
 }

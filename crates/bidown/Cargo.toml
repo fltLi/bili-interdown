@@ -1,7 +1,7 @@
 [package]
 name = "bidown"
 version = "0.1.0"
-description = "互动视频下载打包相关逻辑库"
+description = "互动视频下载, 打包, 求解相关逻辑库"
 edition.workspace = true
 license.workspace = true
 

@@ -1,5 +1,7 @@
 //! 互动视频描述数据结构
 
+use std::{fs::File, io::BufReader, path::Path};
+
 use serde::{Deserialize, Serialize};
 
 use crate::impl_pareq_with_id;
@@ -17,6 +19,12 @@ pub struct Video {
     // execution
     pub variables: Vec<Variable>,
     pub graph: Graph,
+}
+
+impl Video {
+    pub fn from_file(path: &Path) -> crate::Result<Self> {
+        Ok(serde_json::from_reader(BufReader::new(File::open(path)?))?)
+    }
 }
 
 /// 变量声明
@@ -53,6 +61,12 @@ pub struct Node {
     pub config: NodeConfig,
 }
 
+impl Node {
+    pub fn is_leaf(&self) -> bool {
+        self.config.is_leaf()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum NodeConfig {
@@ -62,6 +76,12 @@ pub enum NodeConfig {
         choices: Vec<Choice>,
     },
     Leaf,
+}
+
+impl NodeConfig {
+    pub fn is_leaf(&self) -> bool {
+        matches!(self, Self::Leaf)
+    }
 }
 
 /// 剧情节点选项

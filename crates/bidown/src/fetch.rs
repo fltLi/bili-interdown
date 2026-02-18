@@ -63,20 +63,22 @@ pub enum Error {
 }
 
 /// 爬取互动视频描述
-pub async fn fetch(client: &ClientWithMiddleware, bvid: &str) -> Result<Video> {
-    info!("Start fetching video `{bvid}`");
+impl Video {
+    pub async fn fetch(client: &ClientWithMiddleware, bvid: &str) -> Result<Self> {
+        info!("Start fetching video `{bvid}`");
 
-    // 准备工作
-    let (metadata, root) = fetch_metadata(client, bvid).await?;
-    let version = fetch_version(client, bvid, root).await?;
+        // 准备工作
+        let (metadata, root) = fetch_metadata(client, bvid).await?;
+        let version = fetch_version(client, bvid, root).await?;
 
-    // 构建剧情树
-    let (variables, root_eid) = fetch_variables(client, bvid, version).await?;
-    let graph = fetch_graph(client, bvid, root, root_eid, version).await?;
+        // 构建剧情树
+        let (variables, root_eid) = fetch_variables(client, bvid, version).await?;
+        let graph = fetch_graph(client, bvid, root, root_eid, version).await?;
 
-    info!(
-        "Video `{bvid}` fetching done! `{}` nodes in total",
-        graph.nodes.len()
-    );
-    Ok(metadata.into_video(variables, graph))
+        info!(
+            "Video `{bvid}` fetching done! {} nodes in total",
+            graph.nodes.len()
+        );
+        Ok(metadata.into_video(variables, graph))
+    }
 }
