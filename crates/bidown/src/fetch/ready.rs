@@ -5,9 +5,10 @@ use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use thiserror::Error;
 
-use super::Response;
-
-use crate::model::{Graph, Variable, Video};
+use crate::{
+    model::{Graph, Variable, Video},
+    utils::Response,
+};
 
 //////// metadata ////////
 
@@ -78,10 +79,10 @@ pub enum Error {
     ReqwestMiddleware(#[from] reqwest_middleware::Error),
 
     #[error(transparent)]
-    Reqwest(#[from] reqwest_middleware::reqwest::Error),
+    Reqwest(#[from] reqwest::Error),
 
     #[error("视频不为互动视频或找不到版本信息: {0}")]
-    VersionNotFound(reqwest_middleware::reqwest::Error),
+    VersionNotFound(reqwest::Error),
 }
 
 /// 爬取元数据和根节点 cid

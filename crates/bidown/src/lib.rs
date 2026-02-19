@@ -8,6 +8,7 @@ pub mod fetch;
 pub mod model;
 pub mod solve;
 mod utils;
+pub mod video;
 
 //////// error ////////
 
@@ -22,6 +23,9 @@ pub enum Error {
 
     #[error(transparent)]
     Solve(#[from] solve::Error),
+
+    #[error(transparent)]
+    Video(#[from] video::Error),
 
     // other
     #[error(transparent)]

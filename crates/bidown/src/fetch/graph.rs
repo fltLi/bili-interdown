@@ -9,13 +9,11 @@ use serde_repr::Deserialize_repr;
 use serde_with::{BoolFromInt, serde_as};
 use thiserror::Error;
 
-use super::Response;
-
 use crate::{
     model::{
         self, Change, ChangeKind, Condition, ConditionKind, Graph, Node, NodeConfig, VariableConfig,
     },
-    utils::one_or_len,
+    utils::{Response, one_or_len},
 };
 
 //////// variable ////////
@@ -335,7 +333,7 @@ pub enum Error {
     ReqwestMiddleware(#[from] reqwest_middleware::Error),
 
     #[error(transparent)]
-    Reqwest(#[from] reqwest_middleware::reqwest::Error),
+    Reqwest(#[from] reqwest::Error),
 
     #[error("节点选项列表数要求为 1, 而实际为 {0}")]
     ChoicesCount(usize),

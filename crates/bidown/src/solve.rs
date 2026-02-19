@@ -10,9 +10,12 @@ use log::{debug, info};
 use serde::{Serialize, Serializer, ser::SerializeSeq};
 use thiserror::Error;
 
-use crate::model::{
-    Change, ChangeKind, Choice, Condition, ConditionKind, Graph, Node, NodeConfig, Variable,
-    VariableConfig, Video,
+use crate::{
+    model::{
+        Change, ChangeKind, Choice, Condition, ConditionKind, Graph, Node, NodeConfig, Variable,
+        VariableConfig, Video,
+    },
+    utils::try_all,
 };
 
 //////// model ////////
@@ -268,6 +271,7 @@ impl<'a> State<'a> {
 
 //////// service ////////
 
+/// 求解过程的返回类型
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// 求解过程的错误类型
@@ -313,10 +317,18 @@ impl Video {
     ///
     /// - `pred` - 筛选允许经过的边 (选项), false 时不经过
     ///
+    /// - `variable` - 启用隐藏制判定, false 时假定所有判定为真
+    ///
     /// # Notes
     ///
     /// - 所有随机值产生的判定都将被视为成功
-    pub fn solve<P>(&self, maxd: usize, cutd: usize, mut pred: P) -> Result<Solution<'_>>
+    pub fn solve<P>(
+        &self,
+        maxd: usize,
+        cutd: usize,
+        mut pred: P,
+        variable: bool,
+    ) -> Result<Solution<'_>>
     where
         P: FnMut(&Choice) -> bool,
     {
@@ -375,46 +387,45 @@ impl Video {
                 continue;
             }
 
+            let choices = match &node.config {
+                NodeConfig::Choice { choices, .. } => choices,
+                _ => continue, // 此后只能推入邻边, 不能放其他逻辑!
+            };
+
             // 走到下一个节点
-            if let NodeConfig::Choice { choices, .. } = &node.config {
-                for choice in choices {
-                    let Choice {
-                        target,
-                        conditions,
-                        changes,
-                        ..
-                    } = choice;
+            for choice in choices {
+                let Choice {
+                    target,
+                    conditions,
+                    changes,
+                    ..
+                } = choice;
 
-                    // 过滤掉经过的点
-                    if dep >= cutd && visit.contains(target) {
-                        continue;
-                    }
-
-                    // 过滤掉边
-                    if !pred(choice) {
-                        continue;
-                    }
-
-                    // 检查隐藏值
-                    let mut ok = true;
-                    for condition in conditions {
-                        ok = ok && variables.check(condition)?;
-                    }
-                    if !ok {
-                        continue;
-                    }
-
-                    // 修改隐藏值
-                    let mut variables = variables.clone();
-                    for change in changes {
-                        variables.change(change)?;
-                    }
-
-                    // 推入邻边
-                    let node = get_node(*target)?;
-                    let step = Rc::new(Step::new_linked(node, choice, step.clone()));
-                    queue.push_back((dep + 1, step, variables));
+                // 过滤掉经过的点
+                if dep >= cutd && visit.contains(target) {
+                    continue;
                 }
+
+                // 过滤掉边
+                if !pred(choice) {
+                    continue;
+                }
+
+                // 判定隐藏值
+                if variable && !try_all(conditions.iter().map(|c| variables.check(c)))? {
+                    continue;
+                }
+
+                // 修改隐藏值
+                let mut variables = variables.clone();
+                for change in changes {
+                    variables.change(change)?;
+                }
+
+                // 推入邻边
+                let node = get_node(*target)?;
+                let step = Rc::new(Step::new_linked(node, choice, step.clone()));
+                queue.push_back((dep + 1, step, variables));
             }
         }
 

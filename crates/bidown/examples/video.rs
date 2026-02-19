@@ -1,45 +1,24 @@
-//! 互动视频描述爬取示例
+//! 互动视频下载示例
 //!
-//! 此示例将获取互动视频相关数据并保存到 `./demo-{VIDEO}.json`
+//! 此示例将下载 `./demo-{VIDEO}.json` 对应的视频
 
-use std::{env, error::Error, fs::File, io::Write, time::Duration};
+use std::{env, error::Error, time::Duration};
 
-use bidown::model::Video;
+use bidown::{model::Video, video::Quality};
 use env_logger::Env;
-use http::Extensions;
+use http::header::REFERER;
 use log::{debug, info};
 use reqwest::{
-    Client, Request, Response,
+    Client,
     header::{ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, HeaderMap, HeaderValue, USER_AGENT},
 };
-use reqwest_middleware::{ClientBuilder, Middleware, Next};
+use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
-use tokio::time::sleep;
 
 const VIDEO: &str = "BV1vSNbzgEQF";
+const QUALITY: Quality = Quality::High;
 
 //////// utility ////////
-
-struct DelayMiddleware(Duration);
-
-impl DelayMiddleware {
-    fn new(delay: Duration) -> Self {
-        Self(delay)
-    }
-}
-
-#[async_trait::async_trait]
-impl Middleware for DelayMiddleware {
-    async fn handle(
-        &self,
-        req: Request,
-        extensions: &mut Extensions,
-        next: Next<'_>,
-    ) -> reqwest_middleware::Result<Response> {
-        sleep(self.0).await;
-        next.run(req, extensions).await
-    }
-}
 
 /// 配置请求头
 fn headers() -> HeaderMap {
@@ -58,6 +37,12 @@ fn headers() -> HeaderMap {
     headers.insert(ACCEPT_ENCODING, HeaderValue::from_static("br, zstd"));
     headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("zh-CN,zh;q=0.9"));
 
+    // 添加防盗链
+    headers.insert(
+        REFERER,
+        HeaderValue::from_static("https://www.bilibili.com"),
+    );
+
     headers
 }
 
@@ -67,30 +52,30 @@ fn headers() -> HeaderMap {
 async fn main() -> Result<(), Box<dyn Error>> {
     // 1. 启动日志
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let root = env::current_dir()?;
 
-    // 2. 配置客户端
+    // 2. 解析互动视频描述
+    let path = root.join(format!("demo-{VIDEO}.json"));
+    debug!("Loading video graph at `{}`", path.to_string_lossy());
+    let video = Video::from_file(&path)?;
+
+    // 3. 配置客户端
     debug!("Building client");
     let client = Client::builder().default_headers(headers()).build()?;
 
-    // 3. 配置请求策略
+    // 4. 配置请求策略
     let retry_policy = ExponentialBackoff::builder()
         .retry_bounds(Duration::from_secs(4), Duration::from_secs(16))
         .build_with_max_retries(3);
 
-    // 4. 构建客户端中间件
+    // 5. 构建客户端中间件
     let client = ClientBuilder::new(client)
-        .with(DelayMiddleware::new(Duration::from_millis(500)))
         .with(RetryTransientMiddleware::new_with_policy(retry_policy))
         .build();
 
-    // 5. 执行互动视频爬取
-    let video = Video::fetch(&client, VIDEO).await?;
-    let video = serde_json::to_string_pretty(&video)?;
-
-    // 6. 写入本地文件
-    let path = env::current_dir()?.join(format!("demo-{VIDEO}.json"));
-    debug!("Writing to {}", path.to_string_lossy());
-    File::create(&path)?.write_all(video.as_bytes())?;
+    // 6. 下载相关视频并写入本地文件
+    let path = env::current_dir()?.join(format!("demo-{VIDEO}.video"));
+    video.download(&client, &path, QUALITY).await?;
 
     info!("Done! see at `{}`", path.to_string_lossy());
     Ok(())

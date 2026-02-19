@@ -1,6 +1,6 @@
 //! 互动视频求解示例
 //!
-//! 此示例将求解 `./demo-BV1vSNbzgEQF.json` 对应的视频描述
+//! 此示例将求解 `./demo-{VIDEO}.json` 对应的视频描述
 
 use std::{env, error::Error, fs::File, io::Write};
 
@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let video = Video::from_file(&path)?;
 
     // 3. 求解
-    let solution = video.solve(MAX_DEPTH, CUT_DEPTH, |c| c.id != 43487188)?;
+    let solution = video.solve(MAX_DEPTH, CUT_DEPTH, |c| c.id != 43487188, true)?;
 
     // 4. 写入本地文件
     let path = root.join(format!("demo-{VIDEO}.sln.json"));

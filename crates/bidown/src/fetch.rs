@@ -4,40 +4,9 @@ use std::fmt::Debug;
 
 use log::info;
 use reqwest_middleware::ClientWithMiddleware;
-use serde::Deserialize;
 use thiserror::Error;
 
 use crate::model::Video;
-
-//////// utility ////////
-
-/// 响应头便捷包装
-#[derive(Debug, Clone, Deserialize)]
-struct Response<T>
-where
-    T: Debug + Clone,
-{
-    data: T,
-}
-
-impl<T> Response<T>
-where
-    T: Debug + Clone,
-{
-    pub fn into<U>(self) -> U
-    where
-        T: Into<U>,
-    {
-        self.data.into()
-    }
-
-    // pub fn try_into<U>(self) -> std::result::Result<U, T::Error>
-    // where
-    //     T: TryInto<U>,
-    // {
-    //     self.data.try_into()
-    // }
-}
 
 //////// module ////////
 
