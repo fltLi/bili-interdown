@@ -10,6 +10,8 @@ pub mod solve;
 mod utils;
 pub mod video;
 
+pub use utils::Progress;
+
 //////// error ////////
 
 /// bidown 统合返回类型

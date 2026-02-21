@@ -6,40 +6,17 @@ use std::{env, error::Error, fs::File, io::Write, time::Duration};
 
 use bidown::model::Video;
 use env_logger::Env;
-use http::Extensions;
 use log::{debug, info};
 use reqwest::{
-    Client, Request, Response,
+    Client,
     header::{ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, HeaderMap, HeaderValue, USER_AGENT},
 };
-use reqwest_middleware::{ClientBuilder, Middleware, Next};
+use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
-use tokio::time::sleep;
 
 const VIDEO: &str = "BV1vSNbzgEQF";
 
 //////// utility ////////
-
-struct DelayMiddleware(Duration);
-
-impl DelayMiddleware {
-    fn new(delay: Duration) -> Self {
-        Self(delay)
-    }
-}
-
-#[async_trait::async_trait]
-impl Middleware for DelayMiddleware {
-    async fn handle(
-        &self,
-        req: Request,
-        extensions: &mut Extensions,
-        next: Next<'_>,
-    ) -> reqwest_middleware::Result<Response> {
-        sleep(self.0).await;
-        next.run(req, extensions).await
-    }
-}
 
 /// 配置请求头
 fn headers() -> HeaderMap {
@@ -79,12 +56,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // 4. 构建客户端中间件
     let client = ClientBuilder::new(client)
-        .with(DelayMiddleware::new(Duration::from_millis(500)))
         .with(RetryTransientMiddleware::new_with_policy(retry_policy))
         .build();
 
     // 5. 执行互动视频爬取
-    let video = Video::fetch(&client, VIDEO).await?;
+    let video = Video::fetch(&client, VIDEO, |_| ()).await?;
     let video = serde_json::to_string_pretty(&video)?;
 
     // 6. 写入本地文件

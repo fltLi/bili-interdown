@@ -1,0 +1,97 @@
+import {
+    Button,
+    LineEdit,
+    ProgressIndicator,
+    ScrollView,
+    TextEdit,
+} from "std-widgets.slint";
+
+import { Utility } from "utils.slint";
+
+/// 下载页属性
+export global Fetch {
+    in property <bool> is-fetching;
+    in property <float> progress;
+    in property <string> log;
+    callback fetch(bvid: string, path: string);
+}
+
+/// 下载页
+export component FetchPage inherits Rectangle {
+    //////// field ////////
+
+    property <string> bvid;
+    property <string> path;
+
+    //////// layout ////////
+
+    VerticalLayout {
+        padding: 10px;
+        spacing: 10px;
+
+        // 视频选择
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            LineEdit {
+                min-width: 320px;
+                horizontal-stretch: 1;
+                enabled: !Fetch.is-fetching;
+                text <=> bvid;
+                placeholder-text: "请输入互动视频 BVID";
+            }
+
+            Button {
+                icon: @image-url("icons/check.png");
+                enabled: !Fetch.is-fetching;
+                clicked => {
+                    // assert !is-fetching
+                    Fetch.fetch(bvid, path);
+                }
+            }
+        }
+
+        // 目录选择
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            LineEdit {
+                min-width: 320px;
+                horizontal-stretch: 1;
+                enabled: !Fetch.is-fetching;
+                text <=> path;
+                placeholder-text: "请选择下载目录";
+            }
+
+            Button {
+                icon: @image-url("icons/folder.png");
+                enabled: !Fetch.is-fetching;
+                clicked => {
+                    let path_opt = Utility.pick-folder();
+                    if !path_opt.is-empty {
+                        path = path_opt;
+                    }
+                }
+            }
+        }
+
+        // 进度
+        ProgressIndicator {
+            height: 3px;
+            progress: Fetch.progress;
+        }
+
+        // 工作信息
+        ScrollView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            TextEdit {
+                width: 100%;
+                height: 100%;
+                read-only: true;
+                text <=> Fetch.log;
+                wrap: word-wrap;
+            }
+        }
+    }
+}

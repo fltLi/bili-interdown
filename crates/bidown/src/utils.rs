@@ -1,6 +1,23 @@
 use std::fmt::Debug;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+/// 工作进度
+///
+/// # Notes
+///
+/// - 以节点作为度量单位
+///
+/// - 若 `total` 未知, 请使用最大值.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Progress {
+    // progress
+    pub current: usize,
+    pub total: usize,
+    // metadata
+    pub id: usize,
+    pub name: String,
+}
 
 /// 单元素 Vec 解包, 失败时返回长度
 pub fn one_or_len<T>(mut values: Vec<T>) -> Result<T, usize> {

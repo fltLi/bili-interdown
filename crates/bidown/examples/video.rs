@@ -6,11 +6,12 @@ use std::{env, error::Error, time::Duration};
 
 use bidown::{model::Video, video::Quality};
 use env_logger::Env;
-use http::header::REFERER;
 use log::{debug, info};
 use reqwest::{
     Client,
-    header::{ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, HeaderMap, HeaderValue, USER_AGENT},
+    header::{
+        ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, HeaderMap, HeaderValue, REFERER, USER_AGENT,
+    },
 };
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
@@ -75,7 +76,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // 6. 下载相关视频并写入本地文件
     let path = env::current_dir()?.join(format!("demo-{VIDEO}.video"));
-    video.download(&client, &path, QUALITY).await?;
+    video.download(&client, &path, QUALITY, |_| ()).await?;
 
     info!("Done! see at `{}`", path.to_string_lossy());
     Ok(())

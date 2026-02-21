@@ -13,6 +13,7 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use crate::{
+    Progress,
     model::{Node, Video},
     utils::Response,
 };
@@ -125,20 +126,33 @@ pub enum Error {
 
 impl Video {
     /// 下载关联的视频
-    pub async fn download(
+    pub async fn download<P>(
         &self,
         client: &ClientWithMiddleware,
         path: &Path,
         quality: Quality,
-    ) -> Result<()> {
+        mut progress: P,
+    ) -> Result<()>
+    where
+        P: FnMut(Progress),
+    {
         let bvid = &self.id;
         fs::create_dir_all(path)?;
         info!("Start downloading video `{bvid}`");
 
         // 循环下载每一个节点的视频, 按照编号存储在 path/ 下
-        for Node { id, .. } in &self.graph.nodes {
+        let nodes = &self.graph.nodes;
+        let total = nodes.len();
+        for (k, Node { id, name, .. }) in nodes.iter().enumerate() {
             let path = path.join(format!("{id}.mp4"));
             download(client, &path, bvid, *id, quality).await?;
+
+            progress(Progress {
+                current: k + 1,
+                total,
+                id: *id,
+                name: name.clone(),
+            });
         }
 
         info!(

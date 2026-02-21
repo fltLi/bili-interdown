@@ -10,6 +10,7 @@ use serde_with::{BoolFromInt, serde_as};
 use thiserror::Error;
 
 use crate::{
+    Progress,
     model::{
         self, Change, ChangeKind, Condition, ConditionKind, Graph, Node, NodeConfig, VariableConfig,
     },
@@ -377,13 +378,17 @@ async fn fetch_node(
 }
 
 /// 爬取剧情图
-pub async fn fetch_graph(
+pub async fn fetch_graph<P>(
     client: &ClientWithMiddleware,
     bvid: &str,
     root: usize,
     root_eid: usize,
     version: usize,
-) -> Result<Graph> {
+    mut progress: P,
+) -> Result<Graph>
+where
+    P: FnMut(Progress),
+{
     let mut visit: HashSet<usize> = HashSet::new();
     let mut nodes = Vec::new(); // 其实可以预先计算容量的说 (
 
@@ -399,6 +404,12 @@ pub async fn fetch_graph(
 
         let node = fetch_node(client, bvid, cid, eid, version).await?;
         info!("Node `{}` fetched, name=`{}`", node.id, node.name);
+        progress(Progress {
+            current: nodes.len(),
+            total: usize::MAX,
+            id: node.id,
+            name: node.name.clone(),
+        });
 
         stack.append(&mut node.list_edges()); // 推入邻边
         nodes.push(node);

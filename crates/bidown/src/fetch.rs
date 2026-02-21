@@ -6,7 +6,7 @@ use log::info;
 use reqwest_middleware::ClientWithMiddleware;
 use thiserror::Error;
 
-use crate::model::Video;
+use crate::{Progress, model::Video};
 
 //////// module ////////
 
@@ -33,7 +33,10 @@ pub enum Error {
 
 /// 爬取互动视频描述
 impl Video {
-    pub async fn fetch(client: &ClientWithMiddleware, bvid: &str) -> Result<Self> {
+    pub async fn fetch<P>(client: &ClientWithMiddleware, bvid: &str, progress: P) -> Result<Self>
+    where
+        P: FnMut(Progress),
+    {
         info!("Start fetching video `{bvid}`");
 
         // 准备工作
@@ -42,7 +45,7 @@ impl Video {
 
         // 构建剧情树
         let (variables, root_eid) = fetch_variables(client, bvid, version).await?;
-        let graph = fetch_graph(client, bvid, root, root_eid, version).await?;
+        let graph = fetch_graph(client, bvid, root, root_eid, version, progress).await?;
 
         info!(
             "Video `{bvid}` fetching done! {} nodes in total",
